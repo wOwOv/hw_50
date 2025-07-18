@@ -25,6 +25,8 @@ public:
 
 	TlsMemoryPool(int BlockNum=100, int bunchsize=100,bool PlacementNew = false, bool maxflag = false)
 	{
+
+
 		_nodelist = nullptr;
 		_nodeCount = 0;
 
