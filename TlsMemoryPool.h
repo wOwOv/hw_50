@@ -2,21 +2,16 @@
 #define  __TLSMEMORYPOOL__
 #include <new.h>
 #include <windows.h>
-
-static int key = 0xaaaa;
-
-
-
-#define ADRMASK 0x0000ffffffffffff;
-#define TAGMASK 0xffff000000000000;
-#define MAKETAG 0x0001000000000000;
-
-
+#include "BucketStack.h"
 
 template <class DATA>
-class MemoryPool
+class TlsMemoryPool
 {
 private:
+	const unsigned long long ADRMASK = 0x0000ffffffffffff;
+	const unsigned long long TAGMASK = 0xffff000000000000;
+	const unsigned long long MAKETAG = 0x0001000000000000;
+
 	struct Node
 	{
 		int _underguard;
@@ -28,28 +23,28 @@ private:
 
 public:
 
-	//////////////////////////////////////////////////////////////////////////
-	// 생성자, 파괴자.
-	//
-	// Parameters:	(int) 초기 블럭 개수.
-	//				(bool) Alloc 시 생성자 / Free 시 파괴자 호출 여부
-	// Return:
-	//////////////////////////////////////////////////////////////////////////
-	MemoryPool(int BlockNum, bool PlacementNew = false, bool maxflag = false,bool sharedflag=false,int arraycount=100)
+	TlsMemoryPool(int BlockNum=100, int bunchsize=100,bool PlacementNew = false, bool maxflag = false)
 	{
-		_head = nullptr;
-		_cookie = key;
-		key++;
-		_pnFlag = PlacementNew;
+		_nodelist = nullptr;
+		_nodeCount = 0;
 
-		_maxFlag = maxflag;
+		_freelist = nullptr;
+		_freeCount = 0;
 
-		_sharedflag=sharedflag
-		_key = 0;
-
+		_cookie = _bucketstack.GetCommoncookie();
+	
 		Node* node = new Node;
 		_position = (long long)&node->_data - (long long)&node->_underguard;
 		delete node;
+
+		_key = 0;
+
+		_pnFlag = PlacementNew;
+		_maxcount = BlockNum;
+		_maxFlag = maxflag;
+
+		_bunchsize = bunchsize;
+
 
 		//생성자 호출한 상태로 들어가야함
 		if (_pnFlag == 0)
@@ -60,8 +55,8 @@ public:
 				node->_underguard = _cookie;
 				node->_overguard = _cookie;
 
-				node->_next = _head;
-				_head = node;
+				node->_next = _nodelist;
+				_nodelist = node;
 			}
 		}
 		else//생성자 호출 없이 들어가야함
@@ -72,20 +67,19 @@ public:
 				node->_underguard = _cookie;
 				node->_overguard = _cookie;
 
-				node->_next = _head;
-				_head = node;
+				node->_next = _nodelist;
+				_nodelist = node;
 			}
 		}
 
 
-		_capacity = BlockNum;
-		_usingCount = 0;
+		_storedCount = BlockNum;
 
 
 	}
-	virtual	~MemoryPool()
+	~TlsMemoryPool()
 	{
-		Node* node = _head;
+		Node* node = _nodelist;
 		Node* temp = node;
 		//이미 생성자 호출되어있는 상태로 들어있음. 소멸자 호출 되어야함
 		if (_pnFlag == 0)
@@ -117,7 +111,49 @@ public:
 					tempadr &= ADRMASK;
 					Node* realadr = (Node*)tempadr;
 					temp = realadr->_next;
-					free realadr;
+					free (realadr);
+					node = temp;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		node = _freelist;
+		temp = node;
+		//이미 생성자 호출되어있는 상태로 들어있음. 소멸자 호출 되어야함
+		if (_pnFlag == 0)
+		{
+			while (1)
+			{
+				if (node != nullptr)
+				{
+					unsigned long long tempadr = (unsigned long long)node;
+					tempadr &= ADRMASK;
+					Node* realadr = (Node*)tempadr;
+					temp = realadr->_next;
+					delete realadr;
+					node = temp;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		else
+		{
+			while (1)
+			{
+				if (node != nullptr)
+				{
+					unsigned long long tempadr = (unsigned long long)node;
+					tempadr &= ADRMASK;
+					Node* realadr = (Node*)tempadr;
+					temp = realadr->_next;
+					free(realadr);
 					node = temp;
 				}
 				else
@@ -128,55 +164,71 @@ public:
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// 블럭 하나를 할당받는다.  
-	//
-	// Parameters: 없음.
-	// Return: (DATA *) 데이타 블럭 포인터.
-	//////////////////////////////////////////////////////////////////////////
 	DATA* Alloc(void)
 	{
 		Node* allocated;
-		Node* oldhead;
-		Node* newhead;
-		Node* realadr;
-		unsigned long long tempadr;
-		do
+
+		//사용하려고 보관하고 있는 내 노드가 있다면 
+		if (_nodeCount > 0)
 		{
-			oldhead = _head;
-			if (oldhead == nullptr)
+			allocated = _nodelist;
+			_nodelist = allocated->_next;
+			//_pnFlag가 1이면 생성자 호출해서 나가야함
+			if (_pnFlag != 0)
 			{
-				if (_maxFlag == true)
+				new(&(allocated->_data)) DATA;
+			}
+			_nodeCount--;
+		}
+		//내 노드는 없고 반환하려고 보관해둔 노드가 있다면
+		else if (_freelist > 0)
+		{
+			allocated = _freelist;
+			_freelist = allocated->_next;
+			//_pnFlag가 1이면 생성자 호출해서 나가야함
+			if (_pnFlag != 0)
+			{
+				new(&(allocated->_data)) DATA;
+			}
+			_freeCount--;
+		}
+		//공용풀에서 받아와야한다면
+		else
+		{
+			Node* nodebunch = _bucketstack.GetBucket();
+			//공용풀에서 노드묶음 받아옴
+			if (nodebunch != nullptr)
+			{
+				//내 노드리스트에 연결
+				_nodelist = nodebunch;
+
+				//노드 떼서 주기
+				allocated = _nodelist;
+				_nodelist = allocated->_next;
+				//_pnFlag가 1이면 생성자 호출해서 나가야함
+				if (_pnFlag != 0)
 				{
-					if (_maxcount == _capacity)
-					{
-						return nullptr;
-					}
+					new(&(allocated->_data)) DATA;
 				}
+				_nodeCount = _bunchsize - 1;
+
+			}
+			//공용풀에서도 못 받아왔음
+			else
+			{
+				//진짜 할당해서 줘야함
 				allocated = new Node;
 				allocated->_underguard = _cookie;
 				allocated->_overguard = _cookie;
-				realadr = allocated;
-				InterlockedIncrement(&_capacity);
-				break;
 			}
-
-			tempadr = (unsigned long long)oldhead;
-			tempadr &= ADRMASK;
-			realadr = (Node*)tempadr;
-			newhead = realadr->_next;
-		} while (InterlockedCompareExchange64((__int64*)&_head, (__int64)newhead, (__int64)oldhead) != (__int64)oldhead);
-		allocated = realadr;
-		//_pnFlag가 1이면 생성자 호출해서 나가야함
-		if (_pnFlag != 0)
-		{
-			new(&(allocated->_data)) DATA;
+			
 		}
-
-		InterlockedIncrement(&_usingCount);
 
 		return &(allocated->_data);
 	}
+
+
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// 사용중이던 블럭을 해제한다.
@@ -197,28 +249,35 @@ public:
 			return false;
 		}
 
-
 		//_pnFlag가 1이라면 소멸자 호출해서 보관
 		if (_pnFlag != 0)
 		{
 			retnode->_data.~DATA();
 		}
 
-		unsigned long long countnode = (unsigned long long)retnode;
-		countnode &= ADRMASK;
-		Node* oldhead;
-		do
+		//nodelist 자리가 있다면
+		if (_nodeCount < _bunchsize)
 		{
-			oldhead = _head;
-			unsigned long long tag = oldhead;
-			tag &= TAGMASK;
-			tag += MAKETAG;
-			countnode |= tag;
-			retnode->_next = oldhead;
-		} while (InterlockedCompareExchange64((__int64*)&_head, (__int64)countnode, (__int64)oldhead) != (__int64)oldhead);
+			retnode->_next = _nodelist;
+			_nodelist = retnode;
+			_nodeCount++;
+		}
+		//nodelist에 자리가 없다면 freelist로
+		else
+		{
+			retnode->_next = _freelist;
+			_freelist = retnode;
+			_freeCount++;
 
-		InterlockedDecrement(&_usingCount);
-		
+			//freelist가 다 찼다면
+			if (_freeCount == _bunchsize)
+			{
+				_bucketstack.ReturnBucket(_freelist);
+				_freelist = nullptr;
+				_freeCount = 0;
+			}
+		}
+
 		return true;
 	}
 
@@ -231,62 +290,36 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	int	GetCapacityCount(void)
 	{
-		return _capacity;
+		return _nodeCount+_freeCount;
 	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// 현재 사용중인 블럭 개수를 얻는다.
-	//
-	// Parameters: 없음.
-	// Return: (int) 사용중인 블럭 개수.
-	//////////////////////////////////////////////////////////////////////////
-	int	GetUseCount(void)
-	{
-		return _usingCount;
-	}
-
-
-	void SetMaxCount(int maxcount)
-	{
-		_maxcount = maxcount;
-	}
-
-	// 스택 방식으로 반환된 (미사용) 오브젝트 블럭을 관리.
 
 
 private:
-	Node* _head;
+	Node* _nodelist;
+	unsigned int _nodeCount;
+
+	Node* _freelist;
+	unsigned int _freeCount;
+
+	int _storedCount;
 	int _cookie;
-	int _capacity;
-	int _usingCount;
-	bool _pnFlag;
-
 	long long _position;
+	short _key;
 
+	bool _pnFlag;
 	int _maxcount;
 	bool _maxFlag;
 
-	short _key;
-
-	//공용 노드버킷관리 스택 사용시
-	bool _sharedflag
-	//static //노드버킷 관리 스택
-	Node* _freelist;
-	unsigned long _freeCount;
+	unsigned int _bunchsize;
+	//static 노드버킷 관리 스택
+	static BucketStack _bucketstack;
 };
 
-
-
-
-template <class DATA>
-thread_local MemoryPool<DATA> pool;
-
-
-
-
+template<class DATA>
+BucketStack TlsMemoryPool<DATA>::_bucketstack;
 
 
 
 
 #endif
-#pragma once
+

@@ -3,9 +3,12 @@
 
 #include <iostream>
 #include "TlsMemoryPool.h"
+
 int main()
 {
-    MemoryPool<int> k()
+ 
+	TlsMemoryPool<int> A;
+
 }
 
 // 프로그램 실행: <Ctrl+F5> 또는 [디버그] > [디버깅하지 않고 시작] 메뉴
