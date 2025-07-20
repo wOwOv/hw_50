@@ -66,7 +66,7 @@ public:
 		long size = InterlockedDecrement(&_num);
 		if (size < 0)
 		{
-			InterlockedDecrement(&_num);
+			InterlockedIncrement(&_num);
 			return nullptr;
 		}
 
@@ -79,7 +79,6 @@ public:
 			newtop = realadr->_next;
 			retptr = realadr->_data;
 		} while (InterlockedCompareExchange64((__int64*)&_top, (__int64)newtop, (__int64)oldtop) != (__int64)oldtop);
-		InterlockedDecrement(&_num);
 
 		_bucketpool.Free(realadr);
 		return retptr;
@@ -90,14 +89,14 @@ public:
 		return _num;
 	}
 
-	int GetCommoncookie()
+	int GetCommonCookie()
 	{
 		return _commoncookie;
 	}
 
 private:
 	Bucket* _top;							//head인덱스
-	long _num;								//보관 중인 Bucket개수
+	unsigned long _num;								//보관 중인 Bucket개수
 	short _key;								//tag
 	
 	//Bucket구조체 관리용 메모리풀
