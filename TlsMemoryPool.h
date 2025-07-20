@@ -2,7 +2,6 @@
 #define  __TLSMEMORYPOOL__
 #include <new.h>
 #include <windows.h>
-#include "BucketStack.h"
 
 static long cookie = 0x01010100;
 
@@ -10,6 +9,8 @@ template <class DATA>
 class TlsMemoryPool
 {
 private:
+	const unsigned long long ADRMASK = 0x0000ffffffffffff;
+
 	struct Node
 	{
 		Node* _retbucket;
@@ -20,23 +21,25 @@ private:
 
 	struct Bucket
 	{
-		Node* node=nullptr;
-		unsigned long _max=0;
-		unsigned long _index=0;
-		unsigned long _return=0;
+		Node* _node = nullptr;
+		unsigned long _max = 0;
+		unsigned long _index = 0;
+		unsigned long _returnCount = 0;
+		Bucket* _next = nullptr;
 	};
 
 
 public:
 
-	TlsMemoryPool(int bunchsize=100,bool PlacementNew = false)
+	TlsMemoryPool(int bunchsize = 100, bool PlacementNew = false)
 	{
 		_tlsIndex = TlsAlloc();
 		if (_tlsIndex == TLS_OUT_OF_INDEXES)
 		{
 			DebugBreak();
 		}
-
+		Node* temp = new Node;
+		_position = (long long)&temp->_data - (long long)&temp->_retbucket;
 		_cookie = InterlockedIncrement(&cookie);
 
 		_pnFlag = PlacementNew;
@@ -52,7 +55,7 @@ public:
 			DebugBreak();
 		}
 
-		
+
 
 		TlsFree(_tlsIndex);
 	}
@@ -61,139 +64,66 @@ public:
 	{
 		Node* allocated;
 
-		Bucket* bucket= (Bucket*)TlsGetValue(_tlsIndex);
+		Bucket* bucket = (Bucket*)TlsGetValue(_tlsIndex);
+
 		if (bucket == nullptr)
 		{
-			bucket = new Bucket;
-
-			/*
-			//생성자 호출한 상태로 들어가야함
-			if (_pnFlag == 0)
+			//버켓 받은게 없으니 일단 공용풀 확인
+			long size = InterlockedDecrement(&_num);
+			if (size < 0)
 			{
-				for (int i = 0; i < _maxcount; i++)
-				{
-					Node* node = new Node;
-					node->_underguard = _cookie;
-					node->_overguard = _cookie;
+				InterlockedIncrement(&num);
 
-					node->_next = tpool->_nodelist;
-					tpool->_nodelist = node;
+				//내가 할당
+				bucket = new Bucket;
+				bucket->_max = _bunchsize;
+				bucket->_node = (Node*)malloc(sizeof(Node) * _bunchsize);
+
+				//생성자 호출한 상태로 보관
+
+				for (int i = 0; i < _bunchsize; i++)
+				{
+					Node* node = &(bucket->_node[i]);
+					node->_retbucket = bucket;
+					if (_pnFlag == 0)
+					{
+						new(&bucket->_node[i]) DATA;
+					}
 				}
+
 			}
-			else//생성자 호출 없이 들어가야함
+			else
 			{
-				for (int i = 0; i < _maxcount; i++)
+				Bucket* oldtop;
+				Bucket* newtop;
+				Bucket* realadr;
+				unsigned long long tempadr;
+				do
 				{
-					Node* node = (Node*)malloc(sizeof(Node));
-					node->_underguard = _cookie;
-					node->_overguard = _cookie;
+					tempadr = (unsigned long long)oldtop;
+					tempadr &= ADRMASK;
+					realadr = (Node*)tempadr;
+					newtop = realadr->_next;
+				} while (InterlockedCompareExchange64((__int64*)&_top, (__int64)newtop, (__int64)oldtop) != (__int64)oldtop);
 
-					node->_next = tpool->_nodelist;
-					tpool->_nodelist = node;
-				}
+				bucket = realadr;
+				bucket->_index = 0;
+				bucket->_returnCount = 0;
 			}
 
-			tpool->_nodeCount = _maxcount;
-			tpool->_storedCount = tpool->_nodeCount + tpool->_freeCount;
-*/
 			TlsSetValue(_tlsIndex, (LPVOID)bucket);
 		}
 
-
-		if (bucket->_max == 0)
+		unsigned long index = bucket->_index++;
+		allocated = &(bucket->_node[index]);
+		if (_pnFlag != 0)
 		{
-			//_top에서 가져오기
-
-
+			new(&(bucket->_node[index])) DATA;
 		}
-
-			//생성자 호출한 상태로 들어가야함
-			if (_pnFlag == 0)
-			{
-				for (int i = 0; i < _maxcount; i++)
-				{
-					Node* node = new Node;
-					node->_underguard = _cookie;
-					node->_overguard = _cookie;
-
-					node->_next = tpool->_nodelist;
-					tpool->_nodelist = node;
-				}
-			}
-			else//생성자 호출 없이 들어가야함
-			{
-				for (int i = 0; i < _maxcount; i++)
-				{
-					Node* node = (Node*)malloc(sizeof(Node));
-					node->_underguard = _cookie;
-					node->_overguard = _cookie;
-
-					node->_next = tpool->_nodelist;
-					tpool->_nodelist = node;
-				}
-			}
-
-			tpool->_nodeCount = _maxcount;
-			tpool->_storedCount = tpool->_nodeCount+tpool->_freeCount;
-
-			TlsSetValue(_tlsIndex, (LPVOID)tpool);
-		}
-
-		//사용하려고 보관하고 있는 내 노드가 있다면 
-		if (tpool->_nodeCount > 0)
+		if (bucket->_index == bucket->_max)
 		{
-			allocated = tpool->_nodelist;
-			tpool->_nodelist = allocated->_next;
-			//_pnFlag가 1이면 생성자 호출해서 나가야함
-			if (_pnFlag != 0)
-			{
-				new(&(allocated->_data)) DATA;
-			}
-			tpool->_nodeCount--;
+			TlsSetValue(_tlsIndex, nullptr);
 		}
-		//내 노드는 없고 반환하려고 보관해둔 노드가 있다면
-		else if (tpool->_freeCount > 0)
-		{
-			allocated = tpool->_freelist;
-			tpool->_freelist = allocated->_next;
-			//_pnFlag가 1이면 생성자 호출해서 나가야함
-			if ( _pnFlag != 0)
-			{
-				new(&(allocated->_data)) DATA;
-			}
-			tpool->_freeCount--;
-		}
-		//공용풀에서 받아와야한다면
-		else
-		{
-			Node* nodebunch = (Node*)_bucketstack.GetBucket();
-			//공용풀에서 노드묶음 받아옴
-			if (nodebunch != nullptr)
-			{
-				//내 노드리스트에 연결
-				tpool->_nodelist = nodebunch;
-
-				//노드 떼서 주기
-				allocated = tpool->_nodelist;
-				tpool->_nodelist = allocated->_next;
-				//_pnFlag가 1이면 생성자 호출해서 나가야함
-				if ( _pnFlag != 0)
-				{
-					new(&(allocated->_data)) DATA;
-				}
-				tpool->_nodeCount =  _bunchsize - 1;
-			}
-			//공용풀에서도 못 받아왔음
-			else
-			{
-				//진짜 할당해서 줘야함
-				allocated = new Node;
-				allocated->_underguard =  _cookie;
-				allocated->_overguard = _cookie;
-			}
-			
-		}
-		tpool->_storedCount = tpool->_nodeCount + tpool->_freeCount;
 
 		return &(allocated->_data);
 	}
@@ -211,86 +141,37 @@ public:
 	{
 		//노드할당 주소 찾기
 		char* address = (char*)data;
-		address -=  _position;
+		address -= _position;
 		Node* retnode = (Node*)address;
 
 		//언더.오버플로우 확인 겸 맞는 요소가 들어왔는지 확인
-		if (retnode->_underguard !=  _cookie || retnode->_overguard !=  _cookie)
+		if (retnode->_underguard != _cookie || retnode->_overguard != _cookie)
 		{
 			return false;
 		}
 
-		TlsPool* tpool = (TlsPool*)TlsGetValue(_tlsIndex);
-		if (tpool == nullptr)
-		{
-			tpool = new TlsPool;
-			tpool->_nodelist = nullptr;
-			tpool->_nodeCount = 0;
-			tpool->_freelist = nullptr;
-			tpool->_freeCount = 0;
-			tpool->_storedCount = 0;
-
-			//생성자 호출한 상태로 들어가야함
-			if (_pnFlag == 0)
-			{
-				for (int i = 0; i < _maxcount; i++)
-				{
-					Node* node = new Node;
-					node->_underguard = _cookie;
-					node->_overguard = _cookie;
-
-					node->_next = tpool->_nodelist;
-					tpool->_nodelist = node;
-				}
-			}
-			else//생성자 호출 없이 들어가야함
-			{
-				for (int i = 0; i < _maxcount; i++)
-				{
-					Node* node = (Node*)malloc(sizeof(Node));
-					node->_underguard = _cookie;
-					node->_overguard = _cookie;
-
-					node->_next = tpool->_nodelist;
-					tpool->_nodelist = node;
-				}
-			}
-
-			tpool->_nodeCount = _maxcount;
-			tpool->_storedCount = tpool->_nodeCount + tpool->_freeCount;
-
-			TlsSetValue(_tlsIndex, (LPVOID)tpool);
-		}
-
 		//_pnFlag가 1이라면 소멸자 호출해서 보관
-		if ( _pnFlag != 0)
+		if (_pnFlag != 0)
 		{
 			retnode->_data.~DATA();
 		}
 
-		//nodelist 자리가 있다면
-		if (tpool->_nodeCount <  _bunchsize)
+		Bucket* freebucket = retnode->_retbucket;
+		if (InterlockedIncrement(&freebucket->_retunrCount) == _bunchsize)
 		{
-			retnode->_next = tpool->_nodelist;
-			tpool->_nodelist = retnode;
-			tpool->_nodeCount++;
-		}
-		//nodelist에 자리가 없다면 freelist로
-		else
-		{
-			retnode->_next = tpool->_freelist;
-			tpool->_freelist = retnode;
-			tpool->_freeCount++;
-
-			//freelist가 다 찼다면
-			if (tpool->_freeCount ==  _bunchsize)
+			//BucketPool에 반환
+			unsigned long long tagbucket = (unsigned long long)freebucket;
+			unsigned long long tag = InterlockedIncrement(&_key);
+			tagbucket |= (tag << 48);
+			Node* oldtop;
+			do
 			{
-				_bucketstack.ReturnBucket(tpool->_freelist);
-				tpool->_freelist = nullptr;
-				tpool->_freeCount = 0;
-			}
+				oldtop = _top;
+				freebucket->_next = oldtop;
+			} while (InterlockedCompareExchange64((__int64*)&_top, (__int64)tagbucket, (__int64)oldtop) != (__int64)oldtop);
+
+			InterlockedDecrement(&_num);
 		}
-		tpool->_storedCount = tpool->_nodeCount + tpool->_freeCount;
 
 		return true;
 	}
@@ -302,14 +183,9 @@ public:
 	// Parameters: 없음.
 	// Return: (int) 메모리 풀 내부 전체 개수
 	//////////////////////////////////////////////////////////////////////////
-	int	GetCapacityCount(void)
+	long	GetCapacityCount(void)
 	{
-		TlsPool* tpool = (TlsPool*)TlsGetValue(_tlsIndex);
-		if (tpool == nullptr)
-		{
-			DebugBreak();
-		}
-		return tpool->_storedCount;
+		return _num;
 	}
 
 
@@ -318,10 +194,12 @@ private:
 	bool _pnFlag;
 	unsigned int _bunchsize;
 
-	DWORD _tlsIndex=0;
+	unsigned long long _position;
+
+	DWORD _tlsIndex = 0;
 
 	Bucket* _top;
-	unsigned long _num;
+	long _num;
 	short _key;
 
 };
