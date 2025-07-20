@@ -43,7 +43,7 @@ public:
 
 	void ReturnBucket(void* node)
 	{
-		Bucket* bucket = node;
+		Bucket* bucket = (Bucket*)node;
 		unsigned long long tagadr = (unsigned long long)bucket;
 		unsigned long long tag = InterlockedIncrement16(&_key);
 		tagadr |= (tag << 48);		
