@@ -1,0 +1,86 @@
+head  e0 e1 c4 eb-10 bb c3 eb-   ...   -b0 67 c7 eb
+         7042디큐
+head  10 bb c3 eb-   ...   -b0 67 c7 eb - d0 ed c7 eb
+             head                                      7c42인큐 
+head  10 bb c3 eb- 80 64 c3 eb   ...   -b0 67 c7 eb - d0 ed c7 eb
+             7042디큐     head                                       tail 
+head                 - 80 64 c3 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb
+                             head                                                      7c42인큐 
+head                 - 80 64 c3 eb - 00 9b c2 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb
+                             7042디큐       head                                                       tail
+head                                   - 00 9b c2 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb
+                                               head                                                                          7c42인큐
+head                                   - 00 9b c2 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb
+                                               head                                                                                          9842인큐
+head                                   - 00 9b c2 eb - b0 97 c3 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb
+                                             9842디큐         head                                                                                           tail
+head                                                      - b0 97 c3 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb
+                                                                  head                                                                                                              9842인큐l
+head                                                      - b0 97 c3 eb - 10 48 c2 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb
+                                                                  9842디큐       head                                                                                                              tail
+head                                                                        - 10 48 c2 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb
+                                                                                     head                                                                                                                               9c42인큐
+head                                                                        - 10 48 c2 eb - c0 c8 c7 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb
+                                                                                    9842디큐       head                                                                                                                               tail
+head                  - c0 c8 c7 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb
+                              head                                                                                                                                               9842인큐
+head                  - c0 c8 c7 eb - 80 c4 c7 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb
+                              9442디큐      head                                                                                                                                                    tail
+
+
+
+head                  -80 c4 c7 eb - 30 22 c6 eb   ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb
+                             9442디큐      head                                                                                                                                                    tail
+head         - 30 22 c6 eb 78 01 b9 02   ///////끊김///////...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02
+                     head                                                                                                                                                                                          9c42인큐
+head         - 30 22 c6 eb 78 01 b9 02(30 22 c6 eb 78 01 c3 02) - b0 19 c6 eb 78 01 c4 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                     head                                                                 9842인큐tail                                                                                                                                                                                                                                              9842인큐
+head         - 30 22 c6 eb 78 01 b9 02(30 22 c6 eb 78 01 c3 02) - b0 19 c6 eb 78 01 c4 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                8042디큐                                head / tail                                                                                                                                                                                                                                              9842인큐
+head                                                                            - b0 19 c6 eb 78 01 c4 02 - 70 01 c4 eb 78 01 c5 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                             head                               8c42 인큐 tail                                                                                                                                                                                                                                              9842인큐
+head                                                                            - b0 19 c6 eb 78 01 c4 02 - 70 01 c4 eb 78 01 c5 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                            8042디큐                         head/tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                               - 70 01 c4 eb 78 01 c5 02 - b0 19 c6 eb 78 01 c6 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                   head                       8c42인큐tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                               - 70 01 c4 eb 78 01 c5 02 - b0 19 c6 eb 78 01 c6 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                  8c42디큐                    head/tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                 - b0 19 c6 eb 78 01 c6 02 - 70 01 c4 eb 78 01 c7 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                   head                            8c42인큐tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                 - b0 19 c6 eb 78 01 c6 02 - 70 01 c4 eb 78 01 c7 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                   8042디큐                        head/tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                                                   - 70 01 c4 eb 78 01 c7 02 - b0 19 c6 eb 78 01 c8 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                                                       head                         8c42인큐tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                                                   - 70 01 c4 eb 78 01 c7 02 - b0 19 c6 eb 78 01 c8 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                                                       8042디큐                   head/tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                                                                                     - b0 19 c6 eb 78 01 c8 02 - 70 01 c4 eb 78 01 c9 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                                                                                    head                              8c42인큐tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                                                                                     - b0 19 c6 eb 78 01 c8 02 - 70 01 c4 eb 78 01 c9 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                                                                                    7042디큐                      head/tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                                                                                                                       - 70 01 c4 eb 78 01 c9 02 - 20 1e c2 eb 78 01 ca 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                                                                                                                          head                            7c42인큐 tail                                                                                                                                                                                                                                              9842인큐
+head                                                                                                                                                                                                                                                       - 70 01 c4 eb 78 01 c9 02 - 20 1e c2 eb 78 01 ca 02   ///////끊김///////  ...   -b0 67 c7 eb - d0 ed c7 eb - 50 a2 c3 eb - 90 21 c3 eb - e0 c4 c6 eb - 10 d2 c7 eb - 70 84 c2 eb - 80 3c c2 eb - 30 22 c6 eb 78 01 c3 02 - b0 19 c6 eb 78 01 c4 02 
+                                                                                                                                                                                                                                                                         9042디큐                  head/tail                                                                                                                                                                                                                                              9842인큐
+																		실제로 멈췄을 때 head와 tail모두 20 1e c2 eb 78 01 ca 02이고 _bunchnext도 null
+																			그런데 _bunchCount는 양수이니 6개의 스레드가 GetBunch에 갇혀있음.						  		
+
+
+                                                                																					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
