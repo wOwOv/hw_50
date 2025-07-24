@@ -28,3 +28,6 @@ hw_50_6
  ㄴGetBunch안에 갇혀있음. _bunchCount는 분명 큰 양수인데 _head와 _tail이 같은것을 가리키고 있으며 _bunchnext가 nullptr임.
   ㄴ30 22 c6 eb 78 01 b9 02 얘는 head이지만 이미 다른 스레드에게 노드 뭉치가 던져진 상태->head가 30 22 c6 eb 78 01 b9 02인 상태로 30 22 c6 eb 78 01 c3 02로 노드뭉치가 다시 반환되었고 연결되고 tail이 되었음
   ->그럼 둘은 사실상 같은 bucket이니 _bunchnext가 nullptr로 밀려서 공용풀head의 next가 null이 되어 끊긴 것
+
+hw_50_7
+ㄴ위 상황을 해결하려면 head의 _bunchnext가 따로 보관되어야하나
